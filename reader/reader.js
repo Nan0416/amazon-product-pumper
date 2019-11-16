@@ -36,11 +36,16 @@ class LineReader{
     constructor(filename){
         this.liner = new lineByLine(filename);
         this.scheduler = new Scheduler();
+        for(let i = 0; i < 771336; i++){
+            let line = this.liner.next();
+        }
+        console.log("pre fetch");
     }
     setLineHanlder(lineHandler){
         this.scheduler.setTask((end)=>{
             let line = this.liner.next();
             if(line == null){
+                console.log('end')
                 this.scheduler.stopTask();
             }else{
                 lineHandler(line, end);

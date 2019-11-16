@@ -5,13 +5,13 @@ const process = require('process');
 const extract_fields = require('./utilities').extract_fields;
 const AmazonProductDB = require('./table_definition').AmazonProductDB;
 const LineReader = require('./reader').LineReader;
-const db_server = "qinnan.dev";
+const db_server = "localhost";
 let amazonProductDB = new AmazonProductDB(`postgres://nan:12345@${db_server}:5432/cs6400_project`);
 let lineReader = new LineReader("../raw_data/meta_Electronics.json");
 
 const statistic = {
-    old_count:0,
-    count:0,
+    old_count:771336,
+    count:771336,
     duplicated_product:0
 }
 
@@ -86,7 +86,7 @@ function store_product(product){
 lineReader.setLineHanlder((line, end)=>{
     setTimeout(()=>{
         end();
-    },150);
+    },200);
     let data = JSON.parse(line);
     let product = extract_fields(
         data, 
@@ -111,4 +111,4 @@ lineReader.setLineHanlder((line, end)=>{
     console.log("=== status: job finished. bye bye. ===");
 });*/
 
-lineReader.run(50);
+lineReader.run(35);

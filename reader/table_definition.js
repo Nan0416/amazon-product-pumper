@@ -23,15 +23,6 @@ class AmazonProductDB{
         this.init();
     }
 
-    sync(callback){
-        this.db.sync({force: true}).then(()=>{
-            callback(null, true);
-        }).catch(err =>{
-            callback(err);
-        });
-    }
-
-
     upsert_category(category){ // return promise.
         return this.category.findAll({
             attributes:["id", "name"],
@@ -52,7 +43,42 @@ class AmazonProductDB{
             }
         });
     }
-    
+
+    sync(table_names){
+        let tables = [];
+        let map = new Map();
+
+        map.set('product', this.product);
+        map.set('category', this.category);
+        map.set('pc_mapping', this.pc_mapping);
+        map.set('image', this.image);
+        map.set('user', this.user);
+        map.set('review', this.review);
+
+        if(table_names == null){
+            console.log("overwrite database.")
+            return this.db.sync({force: true});
+        }
+        for(let i = 0; i < table_names.length; i++){
+            if(map.has(table_names[i])){
+                console.log(`overwrite ${table_names[i]}`);
+                tables.push(map.get(table_names[i]));
+            }
+        }
+
+        let pro = new Promise((resolve, reject)=>{
+            resolve();
+        });
+        let temp = pro;
+        for(let i = 0; i < tables.length; i++){
+            temp = temp.then(()=>{
+                return tables[i].sync({force: true});
+            });
+        }
+        return pro;
+    }
+
+
     init(){ // table defintion.
         this.product = this.db.define('product', {
             asin: {
@@ -174,6 +200,16 @@ class AmazonProductDB{
                 type: sequelize.DOUBLE,
                 field: 'rating',
                 allowNull: false,
+            },
+            summary:{
+                type: sequelize.TEXT,
+                field: 'summary',
+                allowNull: false,
+            },
+            text:{
+                type: sequelize.TEXT,
+                field: 'text',
+                allowNull: true,
             },
             product_asin:{
                 type: sequelize.CHAR(10),
