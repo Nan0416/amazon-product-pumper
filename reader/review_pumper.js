@@ -1,9 +1,12 @@
-const LineByLineReader = require('line-by-line')
+const LineByLineReader = require('line-by-line');
+const fs = require('fs');
 const lr = new LineByLineReader("../raw_data/Electronics.json");
-const AmazonProductDB = require('./table_definition').AmazonProductDB;
+const AmazonProductDB = require('./amazon_db').AmazonProductDB;
 const db_server = "localhost";
 const amazonProductDB = new AmazonProductDB(`postgres://nan:12345@${db_server}:5432/cs6400_project`);
 const hash_password = "$2b$10$.KQSliWjRWtU41QKh2L9iebW0EyQVcTfTZ/UYqe8b.ktk7gVyDdea";  // password "12345"
+const review_pumper_record_file = '.review_pumper_count.txt';
+
 
 const statistic = {
     count:0,
@@ -14,7 +17,7 @@ const statistic = {
 }
 setInterval(() => {
     console.log(`=== total: ${statistic.count}, good: ${statistic.good_review}, bad: ${statistic.bad_review}, dupl: ${statistic.dupl}, bad asin: ${statistic.bad_asin} @ ${new Date().toString()}`);
-}, 1000);
+}, 2000);
 
 function extract_data(review){
     if(!review.verified || review.asin == null || 
@@ -23,6 +26,7 @@ function extract_data(review){
         return null;
     }
     let data = {
+        reviewer_id: review.reviewerID,
         product_asin:review.asin,
         rating:review.overall,
         username: review.reviewerName,
@@ -34,32 +38,32 @@ function extract_data(review){
     return data;
 }
 
-function upsert_user(username){
+function upsert_user(user){
     // first check if the user existed,
-    return amazonProductDB.user.findAll({
+    return amazonProductDB.user2.findOne({
         attributes:['id', 'username'],
-        where:{username: username}
+        where:{id: user.id}
     })
     .then(data =>{
-        if(data.length == 0){
-            return amazonProductDB.user.build({username: username, hash_password: hash_password}).save()
+        if(data == null){
+            return amazonProductDB.user2.build({
+                id: user.id, 
+                username: user.username, 
+                hash_password: hash_password})
+            .save()
             .then(item =>{
                 return new Promise((resolve, reject)=>{
                     resolve(item.dataValues);
                 });
             })
-            .catch(err => {
-                return new Promise((resolve, reject) =>{
-                    reject(err);
-                });
-            });
         }else{
             return new Promise((resolve, reject)=>{
-                resolve(data[0].dataValues);
+                resolve(data.dataValues);
             });
         }
     });
 }
+
 lr.on("line",(line)=>{
     lr.pause();
     statistic.count++;
@@ -68,22 +72,33 @@ lr.on("line",(line)=>{
         statistic.bad_review++;
         lr.resume();
     }else{
-        upsert_user(review.username)
-        .then(user => {
-            review.user_id = user.id;
-            return amazonProductDB.review.build(review).save()
+
+        upsert_user({
+            id: review.reviewer_id,
+            username:review.username
         })
-        .then(_ =>{
+        .then(d => {
+            return amazonProductDB.review2.build(review).save()
+        })
+        .then(d =>{
             statistic.good_review++;
             lr.resume();
         })
         .catch(err=>{
-            if(err.message == 'insert or update on table "review" violates foreign key constraint "review_product_asin_fkey"'){
+            if(err.message == 'insert or update on table "review2" violates foreign key constraint "review2_product_asin_fkey"'){
                 statistic.bad_asin++;
             }else if(err.message == "Validation error"){
                 statistic.dupl++;
+            }else{
+                console.log(err.message);
             }
             lr.resume();
         });
     }
+});
+process.on('SIGINT', () => {
+    console.log("Saving Record");
+    fs.writeFile(review_pumper_record_file, statistic.count, (err)=>{
+        process.exit(0);
+    })
 });
