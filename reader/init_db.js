@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict'
 const AmazonProductDB = require('./amazon_db').AmazonProductDB;
-const server = "localhost"
+const server = require('./config').server_addr;
 let am = new AmazonProductDB(`postgres://nan:12345@${server}:5432/cs6400_project`);
 am.sync(["review2", "user2"])
 .then((_)=>{

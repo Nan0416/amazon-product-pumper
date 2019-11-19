@@ -1,8 +1,8 @@
 const LineByLineReader = require('line-by-line');
 const fs = require('fs');
 const AmazonProductDB = require('./amazon_db').AmazonProductDB;
-const db_server = "localhost";
-const amazonProductDB = new AmazonProductDB(`postgres://nan:12345@${db_server}:5432/cs6400_project`);
+const server = require('./config').server_addr;
+const amazonProductDB = new AmazonProductDB(`postgres://nan:12345@${server}:5432/cs6400_project`);
 const hash_password = "$2b$10$.KQSliWjRWtU41QKh2L9iebW0EyQVcTfTZ/UYqe8b.ktk7gVyDdea";  // password "12345"
 const review_pumper_record_file = '.review_pumper_count.txt';
 
