@@ -51,7 +51,13 @@ class AmazonProductDB{
                 let tname = table_names[i];
                 pro = pro.then(()=>{
                     console.log(`overwrite ${i} ${tname}`);
-                    return map.get(tname).sync({force: true});
+                    return map.get(tname).sync({force: true})
+                    .then(_ =>{
+                        console.log("success");
+                    })
+                    .catch(err => {
+                        console.log(err.message);
+                    })
                 });
             }
         }
